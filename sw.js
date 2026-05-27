@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hyakumasu-v4';
+const CACHE_NAME = 'hyakumasu-v8';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const ASSETS_TO_CACHE = [
   './Character/apple.png',
   './Character/grape.png',
   './Character/lemon.png',
+  './Character/melon.png',
   './Character/orange.png',
   './Character/strawberry.jpg',
   'https://cdn.tailwindcss.com',

@@ -171,6 +171,21 @@
         </div>
       </div>
 
+      <!-- 4. Difficulty Mode Selection -->
+      <div class="space-y-3">
+        <h3 class="text-center text-lg font-bold text-slate-600 flex items-center justify-center gap-1">
+          ⭐ むずかしさ
+        </h3>
+        <div class="flex justify-center gap-3 max-w-sm mx-auto px-4">
+          <button onclick="setDifficultyMode('easy')" id="btn-diff-easy" class="flex-1 py-3 rounded-2xl font-extrabold text-base border-b-4 border-slate-300 bg-white text-slate-600 active:scale-95 transition-all shadow-md flex flex-col items-center">
+            <span>かんたん</span><span class="text-[10px] font-normal">くりあがり なし</span>
+          </button>
+          <button onclick="setDifficultyMode('normal')" id="btn-diff-normal" class="flex-1 py-3 rounded-2xl font-extrabold text-base border-b-4 border-slate-300 bg-white text-slate-600 active:scale-95 transition-all shadow-md flex flex-col items-center">
+            <span>ふつう</span><span class="text-[10px] font-normal">くりあがり あり</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Start Button -->
       <div class="pt-4 flex justify-center">
         <button id="btn-start" onclick="startGame()" class="w-full max-w-xs py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-extrabold text-2xl rounded-full shadow-lg hover:shadow-xl active:scale-95 transition-all border-b-8 border-rose-700 animate-bounce-slow">
@@ -341,7 +356,7 @@
   </div>
 
   <!-- Tailwind CSS class safelist for JIT compilation -->
-  <div class="hidden from-rose-500 to-rose-600 border-rose-700 from-purple-500 to-purple-600 border-purple-700 from-amber-500 to-amber-600 border-amber-700 from-orange-500 to-orange-600 border-orange-700 from-pink-500 to-pink-600 border-pink-700 from-rose-400 to-rose-500 border-rose-600 from-purple-400 to-purple-500 border-purple-600 from-amber-400 to-amber-500 border-amber-600 from-orange-400 to-orange-500 border-orange-600 from-pink-400 to-pink-500 border-pink-600"></div>
+  <div class="hidden from-rose-500 to-rose-600 border-rose-700 from-purple-500 to-purple-600 border-purple-700 from-amber-500 to-amber-600 border-amber-700 from-orange-500 to-orange-600 border-orange-700 from-pink-500 to-pink-600 border-pink-700 from-rose-400 to-rose-500 border-rose-600 from-purple-400 to-purple-500 border-purple-600 from-amber-400 to-amber-500 border-amber-600 from-orange-400 to-orange-500 border-orange-600 from-pink-400 to-pink-500 border-pink-600 from-emerald-500 to-emerald-600 border-emerald-700 from-emerald-400 to-emerald-500 border-emerald-600 bg-emerald-50 border-emerald-300 text-emerald-600"></div>
 
   <!-- PWA service worker registration script -->
   <script src="./register-sw.js"></script>
@@ -442,6 +457,29 @@
           launch: "いっしょに けいさん がんばろう！<br>どれにする？",
           start: "えいえいおー！ ぜんぶ ますを うめてね！",
           correct: ["すごーい！", "てんさい！", "そのちょうし！", "はなまる！"],
+          incorrect: "おしい！ もういちど やってみよう！",
+          victory: "やったー！ ぜんぶ できたね！ ハナマルあげる！ 💮"
+        }
+      },
+      {
+        id: 'melon',
+        name: 'めろん',
+        emoji: '🍈',
+        imagePath: './Character/melon.png',
+        theme: {
+          bg: 'from-green-50 to-emerald-100',
+          bubbleBorder: 'border-emerald-300',
+          bubbleText: 'text-emerald-600',
+          accent: 'emerald',
+          gradientStyle: 'linear-gradient(to right, #10b981, #059669)',
+          borderStyle: '#047857',
+          activeGradientStyle: 'linear-gradient(to right, #34d399, #10b981)',
+          activeBorderStyle: '#059669'
+        },
+        dialogues: {
+          launch: "いっしょに けいさん がんばろう！<br>どれにする？",
+          start: "えいえいおー！ ぜんぶ ますを うめてね！",
+          correct: ["すごーい！", "てんさい！", "そのちょうし！", "バッチリ！"],
           incorrect: "おしい！ もういちど やってみよう！",
           victory: "やったー！ ぜんぶ できたね！ ハナマルあげる！ 💮"
         }
@@ -604,6 +642,7 @@
       selectedCharacter: CHARACTERS[0], // Default Apple
       gridSize: 3, // 3, 5, 10
       operation: '+', // '+', '-', '*', '/'
+      difficultyMode: 'easy', // 'easy', 'normal'
       leftHeaders: [],
       topHeaders: [],
       factors: [], // Used for division rules
@@ -736,6 +775,23 @@
           }
         }
       });
+      // Difficulty buttons
+      ['easy', 'normal'].forEach((mode) => {
+        const btn = document.getElementById(`btn-diff-${mode}`);
+        if (btn) {
+          if (mode === state.difficultyMode) {
+            btn.style.backgroundImage = theme.activeGradientStyle;
+            btn.style.borderColor = theme.activeBorderStyle;
+            btn.style.color = '#ffffff';
+            btn.classList.add('shadow-md');
+          } else {
+            btn.style.backgroundImage = 'none';
+            btn.style.borderColor = '#cbd5e1';
+            btn.style.color = '#475569';
+            btn.classList.remove('shadow-md');
+          }
+        }
+      });
     }
 
     function setGridSize(size, silent = false) {
@@ -750,6 +806,31 @@
       updateControlColors();
     }
 
+    function setDifficultyMode(mode, silent = false) {
+      if (!silent) playSound('tap');
+      state.difficultyMode = mode;
+      if (mode === 'easy' && state.gridSize === 10) {
+        state.gridSize = 5;
+      }
+      updateControlColors();
+      updateSizeButtonsAvailability();
+    }
+
+    function updateSizeButtonsAvailability() {
+      const btn10 = document.getElementById('btn-size-10');
+      if (btn10) {
+        if (state.difficultyMode === 'easy') {
+          btn10.disabled = true;
+          btn10.style.opacity = '0.5';
+          btn10.style.pointerEvents = 'none';
+        } else {
+          btn10.disabled = false;
+          btn10.style.opacity = '1';
+          btn10.style.pointerEvents = 'auto';
+        }
+      }
+    }
+
     // ==========================================
     // 5. GAME BOARD & MATRIX GENERATION
     // ==========================================
@@ -762,37 +843,77 @@
       let factors = []; // used for division factors
 
       if (op === '+') {
-        // Addition: unique numbers from 0-9
-        const poolL = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
-        left = poolL.slice(0, N);
-        const poolT = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
-        top = poolT.slice(0, N);
+        if (state.difficultyMode === 'easy') {
+          // Sum <= 9 (no carry over)
+          const poolL = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5);
+          left = poolL.slice(0, N);
+          const poolT = [0, 1, 2, 3, 4, 5].sort(() => Math.random() - 0.5);
+          top = poolT.slice(0, N);
+        } else {
+          // Addition: unique numbers from 0-9
+          const poolL = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+          left = poolL.slice(0, N);
+          const poolT = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+          top = poolT.slice(0, N);
+        }
       } else if (op === '*') {
-        // Multiplication: unique numbers from 0-9
-        const poolL = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
-        left = poolL.slice(0, N);
-        const poolT = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
-        top = poolT.slice(0, N);
+        if (state.difficultyMode === 'easy') {
+          // Multiplication: numbers 1-5 (easier results)
+          const poolL = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5);
+          left = poolL.slice(0, N);
+          const poolT = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5);
+          top = poolT.slice(0, N);
+        } else {
+          // Multiplication: unique numbers from 0-9
+          const poolL = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+          left = poolL.slice(0, N);
+          const poolT = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+          top = poolT.slice(0, N);
+        }
       } else if (op === '-') {
-        // Subtraction: unique numbers from 0-9
-        const poolL = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
-        left = poolL.slice(0, N);
-        
-        // Top values: must be >= all left values to avoid negatives.
-        // Min top must be >= max left. Max left in pool is 9.
-        // So top values should be from 9 to 18 (or 10 to 19).
-        const poolT = Array.from({ length: 10 }, (_, i) => i + 9).sort(() => Math.random() - 0.5);
-        top = poolT.slice(0, N);
+        if (state.difficultyMode === 'easy') {
+          // Subtraction: 1-digit, Left >= Top (no borrow over)
+          const poolL = [5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+          left = poolL.slice(0, N);
+          const poolT = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5);
+          top = poolT.slice(0, N);
+        } else {
+          // Subtraction: Left - Top >= 0
+          // Left values (minuend) must be larger: 9 to 18
+          const poolL = Array.from({ length: 10 }, (_, i) => i + 9).sort(() => Math.random() - 0.5);
+          left = poolL.slice(0, N);
+          
+          // Top values (subtrahend) must be smaller: 0 to 9
+          const poolT = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+          top = poolT.slice(0, N);
+        }
       } else if (op === '/') {
-        // Division: unique divisors and unique answers (factors)
-        const poolL = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].sort(() => Math.random() - 0.5);
-        left = poolL.slice(0, N);
-        
-        // Generate a unique shuffled list of factors 1-10 for each row to keep answers unique
-        factors = [];
-        for (let r = 0; r < N; r++) {
-          const rowFactors = Array.from({ length: 10 }, (_, i) => i + 1).sort(() => Math.random() - 0.5).slice(0, N);
-          factors.push(rowFactors);
+        if (state.difficultyMode === 'easy') {
+          // Easy division: divisors 1-5, factors 1-5
+          const poolT = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5);
+          top = poolT.slice(0, N);
+          
+          left = Array(N).fill(1);
+          
+          factors = [];
+          for (let c = 0; c < N; c++) {
+            const colFactors = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5).slice(0, N);
+            factors.push(colFactors);
+          }
+        } else {
+          // Division: unique divisors (top) and unique answers (factors)
+          const poolT = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].sort(() => Math.random() - 0.5);
+          top = poolT.slice(0, N);
+          
+          // Fill left with dummy values (will be dynamically overwritten per active column)
+          left = Array(N).fill(1);
+          
+          // Generate a unique shuffled list of factors 1-10 for each column to keep answers unique
+          factors = [];
+          for (let c = 0; c < N; c++) {
+            const colFactors = Array.from({ length: 10 }, (_, i) => i + 1).sort(() => Math.random() - 0.5).slice(0, N);
+            factors.push(colFactors);
+          }
         }
       }
 
@@ -812,13 +933,13 @@
           if (op === '+') {
             answer = leftVal + topVal;
           } else if (op === '-') {
-            answer = topVal - leftVal;
+            answer = leftVal - topVal;
           } else if (op === '*') {
             answer = leftVal * topVal;
           } else if (op === '/') {
-            // For division, topVal for row r, col c is: leftVal * factors[r][c]
-            topVal = leftVal * factors[r][c];
-            answer = factors[r][c]; // Answer is the factor itself (clean division result)
+            // For division, leftVal for row r, col c is: topVal * factors[c][r]
+            leftVal = topVal * factors[c][r];
+            answer = factors[c][r]; // Answer is the factor itself (clean division result)
           }
 
           rowData.push({
@@ -862,13 +983,7 @@
         th.id = `top-header-${c}`;
         th.className = `${cellClass} flex items-center justify-center bg-amber-100 rounded-2xl border-4 border-white font-extrabold text-amber-600 shadow-sm transition-all duration-300`;
         
-        // For division, we display the multiples for the currently active row
-        if (state.operation === '/') {
-          const activeRow = state.activeCell ? state.activeCell.row : 0;
-          th.textContent = state.gridMatrix[activeRow][c].topVal;
-        } else {
-          th.textContent = state.topHeaders[c];
-        }
+        th.textContent = state.topHeaders[c];
         
         gridContainer.appendChild(th);
       }
@@ -879,7 +994,13 @@
         const lh = document.createElement('div');
         lh.id = `left-header-${r}`;
         lh.className = `${cellClass} flex items-center justify-center bg-indigo-100 rounded-2xl border-4 border-white font-extrabold text-indigo-600 shadow-sm transition-all duration-300`;
-        lh.textContent = state.leftHeaders[r];
+        
+        if (state.operation === '/') {
+          const activeCol = state.activeCell ? state.activeCell.col : 0;
+          lh.textContent = state.gridMatrix[r][activeCol].leftVal;
+        } else {
+          lh.textContent = state.leftHeaders[r];
+        }
         gridContainer.appendChild(lh);
 
         // --- 3b. Intersection Input Cells ---
@@ -921,14 +1042,14 @@
       
       // For division, dynamic headers need to update when row changes
       if (state.operation === '/') {
-        // Update top row headers
-        for (let col = 0; col < state.gridSize; col++) {
-          const th = document.getElementById(`top-header-${col}`);
-          if (th) {
-            th.textContent = state.gridMatrix[r][col].topVal;
-            // Add a little pop effect to top headers on change
-            th.classList.add('scale-105');
-            setTimeout(() => th.classList.remove('scale-105'), 200);
+        // Update left column headers
+        for (let row = 0; row < state.gridSize; row++) {
+          const lh = document.getElementById(`left-header-${row}`);
+          if (lh) {
+            lh.textContent = state.gridMatrix[row][c].leftVal;
+            // Add a little pop effect to left headers on change
+            lh.classList.add('scale-105');
+            setTimeout(() => lh.classList.remove('scale-105'), 200);
           }
         }
       }
@@ -1090,28 +1211,46 @@
 
       const { row, col } = state.activeCell;
       
-      // Find the next cell in row-major order that is not solved yet
       let curR = row;
       let curC = col;
 
-      for (let i = 0; i < N * N; i++) {
-        curC++;
-        if (curC >= N) {
-          curC = 0;
+      if (state.operation === '/') {
+        // Column-major order for division (go down first, wrap to next column)
+        for (let i = 0; i < N * N; i++) {
           curR++;
           if (curR >= N) {
             curR = 0;
+            curC++;
+            if (curC >= N) {
+              curC = 0;
+            }
+          }
+
+          if (!state.gridMatrix[curR][curC].isCorrect) {
+            selectCell(curR, curC);
+            return;
           }
         }
+      } else {
+        // Row-major order for other operations (go right first, wrap to next row)
+        for (let i = 0; i < N * N; i++) {
+          curC++;
+          if (curC >= N) {
+            curC = 0;
+            curR++;
+            if (curR >= N) {
+              curR = 0;
+            }
+          }
 
-        if (!state.gridMatrix[curR][curC].isCorrect) {
-          selectCell(curR, curC);
-          return;
+          if (!state.gridMatrix[curR][curC].isCorrect) {
+            selectCell(curR, curC);
+            return;
+          }
         }
       }
       
-      // If we couldn't find any unsolved cells, but game isn't over (some cells might have wrong answers),
-      // just select the first incorrect cell
+      // If we couldn't find any unsolved cells, but game isn't over, select the first incorrect cell
       for (let r = 0; r < N; r++) {
         for (let c = 0; c < N; c++) {
           if (!state.gridMatrix[r][c].isCorrect) {
@@ -1363,8 +1502,8 @@
 
         const dayStamps = state.completedStamps[formattedDate] || [];
         
-        // Check if all 5 characters are completed (Apple, Grape, Lemon, Orange, Strawberry)
-        if (dayStamps.length >= 5) {
+        // Check if all 6 characters are completed (Apple, Grape, Lemon, Melon, Orange, Strawberry)
+        if (dayStamps.length >= 6) {
           // All characters completed -> Display big Hanamaru stamp 💮
           dayCell.innerHTML = `
             <span class="text-xs text-slate-300 z-0 absolute top-0.5 right-1">${day}</span>
@@ -1471,6 +1610,7 @@
       selectCharacter(CHARACTERS[0], true);
       setGridSize(3, true);
       setOperation('+', true);
+      setDifficultyMode('easy', true);
       
       // Initial render for TOP screen calendar
       const today = new Date();
