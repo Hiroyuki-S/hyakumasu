@@ -1,0 +1,16 @@
+{
+  "name": "hyakumasu-keisan",
+  "version": "1.0.0",
+  "description": "100-mass calculation app for kids (百マス計算)",
+  "scripts": {
+    "dev": "npx -y http-server ./ -p 3000"
+  },
+  "keywords": [
+    "pwa",
+    "math",
+    "kids",
+    "kumon"
+  ],
+  "author": "",
+  "license": "ISC"
+}

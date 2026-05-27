@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ひゃくますけいさん - たのしい百マス計算</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#FFDEE9">
+  <!-- PWA iOS support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ひゃくます">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  
+  <!-- Google Fonts for Kids-friendly typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Kosugi+Maru&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Fredoka', 'Kosugi Maru', 'sans-serif'],
+          },
+          animation: {
+            'bounce-slow': 'bounce-slow 3s infinite ease-in-out',
+            'float': 'float 4s ease-in-out infinite',
+            'pulse-glow': 'pulse-glow 2s infinite ease-in-out',
+            'pop': 'pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+          },
+          keyframes: {
+            'bounce-slow': {
+              '0%, 100%': { transform: 'translateY(0) scale(1)' },
+              '50%': { transform: 'translateY(-12px) scale(1.02)' },
+            },
+            'float': {
+              '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
+              '50%': { transform: 'translateY(-8px) rotate(2deg)' },
+            },
+            'pulse-glow': {
+              '0%, 100%': { boxShadow: '0 0 15px rgba(253, 224, 71, 0.4)', borderColor: 'rgba(253, 224, 71, 0.8)' },
+              '50%': { boxShadow: '0 0 25px rgba(253, 224, 71, 0.8)', borderColor: 'rgba(250, 204, 21, 1)' },
+            },
+            'pop': {
+              '0%': { transform: 'scale(0.8)', opacity: '0' },
+              '100%': { transform: 'scale(1)', opacity: '1' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Prevent double tap zoom delay on mobile and text selection */
+    body {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    /* Hide scrollbars for clean app feeling */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* Keypad press animation */
+    .key-press:active {
+      transform: scale(0.92);
+      filter: brightness(0.9);
+    }
+    /* Grid cell responsive styling */
+    .grid-cell-3x3 {
+      width: 4.5rem;
+      height: 4.5rem;
+      font-size: 1.875rem;
+    }
+    .grid-cell-5x5 {
+      width: 3.5rem;
+      height: 3.5rem;
+      font-size: 1.5rem;
+    }
+    .grid-cell-10x10 {
+      width: 2.2rem;
+      height: 2.2rem;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-b from-pink-50 to-purple-100 min-h-screen text-slate-700 flex flex-col items-center justify-start overflow-x-hidden">
+
+  <!-- Main Container (optimized for mobile portrait / iPad frames on desktop) -->
+  <div id="app" class="w-full max-w-lg min-h-screen flex flex-col justify-between p-4 relative bg-white bg-opacity-70 backdrop-blur-md shadow-2xl transition-all duration-500">
+    
+    <!-- ========================================== -->
+    <!-- SCREEN 1: SETTINGS / START SCREEN          -->
+    <!-- ========================================== -->
+    <div id="screen-settings" class="flex-1 flex flex-col justify-between space-y-6 py-4 animate-pop">
+      
+      <!-- Top Title -->
+      <div class="text-center space-y-2">
+        <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 tracking-wider animate-bounce-slow py-2">
+          💮 ますけいさん 💮
+        </h1>
+        <p class="text-sm font-semibold text-slate-500">くだものの ようせいたちと けいさんしよう！</p>
+      </div>
+
+      <!-- Dialogue Bubble -->
+      <div class="relative bg-white border-4 border-pink-300 rounded-3xl p-4 shadow-md max-w-sm mx-auto animate-float">
+        <div class="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-0 h-0 border-t-8 border-t-pink-300 border-x-8 border-x-transparent"></div>
+        <div class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 w-0 h-0 border-t-8 border-t-white border-x-8 border-x-transparent"></div>
+        <p id="settings-speech-bubble" class="text-center text-base font-bold text-pink-600 tracking-wide">
+          いっしょに けいさん がんばろう！ どれにする？
+        </p>
+      </div>
+
+      <!-- 1. Character Selection -->
+      <div class="space-y-3">
+        <h3 class="text-center text-lg font-bold text-slate-600 flex items-center justify-center gap-1">
+          🍎 ようせい を えらんでね
+        </h3>
+        <div class="grid grid-cols-3 gap-3 max-w-md mx-auto px-2" id="character-grid">
+          <!-- Dynamically Rendered Characters -->
+        </div>
+      </div>
+
+      <!-- 2. Grid Size Selection -->
+      <div class="space-y-3">
+        <h3 class="text-center text-lg font-bold text-slate-600">
+          📐 ますの かず (サイズ)
+        </h3>
+        <div class="flex justify-center gap-3 max-w-sm mx-auto px-4">
+          <button onclick="setGridSize(3)" id="btn-size-3" class="flex-1 py-3 rounded-2xl font-extrabold text-lg border-b-4 border-slate-300 bg-white text-slate-600 active:scale-95 transition-all shadow-md">
+            3 × 3<br><span class="text-xs font-normal">ぷち</span>
+          </button>
+          <button onclick="setGridSize(5)" id="btn-size-5" class="flex-1 py-3 rounded-2xl font-extrabold text-lg border-b-4 border-slate-300 bg-white text-slate-600 active:scale-95 transition-all shadow-md">
+            5 × 5<br><span class="text-xs font-normal">ふつう</span>
+          </button>
+          <button onclick="setGridSize(10)" id="btn-size-10" class="flex-1 py-3 rounded-2xl font-extrabold text-lg border-b-4 border-slate-300 bg-white text-slate-600 active:scale-95 transition-all shadow-md">
+            10 × 10<br><span class="text-xs font-normal">チャレンジ</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. Math Operation Selection -->
+      <div class="space-y-3">
+        <h3 class="text-center text-lg font-bold text-slate-600">
+          ⚡ けいさんの しゅるい
+        </h3>
+        <div class="grid grid-cols-4 gap-2 max-w-sm mx-auto px-4">
+          <button onclick="setOperation('+')" id="btn-op-add" class="py-3 rounded-2xl font-extrabold text-xl border-b-4 border-slate-300 bg-white text-slate-600 active:scale-95 transition-all shadow-md flex flex-col items-center">
+            <span>＋</span><span class="text-[10px] font-normal">たしざん</span>
+          </button>
+          <button onclick="setOperation('-')" id="btn-op-sub" class="py-3 rounded-2xl font-extrabold text-xl border-b-4 border-slate-300 bg-white text-slate-600 active:scale-95 transition-all shadow-md flex flex-col items-center">
+            <span>－</span><span class="text-[10px] font-normal">ひきざん</span>
+          </button>
+          <button onclick="setOperation('*')" id="btn-op-mul" class="py-3 rounded-2xl font-extrabold text-xl border-b-4 border-slate-300 bg-white text-slate-600 active:scale-95 transition-all shadow-md flex flex-col items-center">
+            <span>×</span><span class="text-[10px] font-normal">かけざん</span>
+          </button>
+          <button onclick="setOperation('/')" id="btn-op-div" class="py-3 rounded-2xl font-extrabold text-xl border-b-4 border-slate-300 bg-white text-slate-600 active:scale-95 transition-all shadow-md flex flex-col items-center">
+            <span>÷</span><span class="text-[10px] font-normal">わりざん</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Start Button -->
+      <div class="pt-4 flex justify-center">
+        <button id="btn-start" onclick="startGame()" class="w-full max-w-xs py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-extrabold text-2xl rounded-full shadow-lg hover:shadow-xl active:scale-95 transition-all border-b-8 border-rose-700 animate-bounce-slow">
+          スタート！ 🚀
+        </button>
+      </div>
+
+      <!-- Stamp History Section on TOP Settings Screen -->
+      <div class="bg-white rounded-3xl p-4 shadow border border-pink-100 space-y-3 mt-4">
+        <h3 class="text-center text-sm font-bold text-slate-600 flex items-center justify-center gap-1">
+          💮 がんばりスタンプカード (しんちょく)
+        </h3>
+        <div class="flex items-center justify-between px-2">
+          <button onclick="changeCalendarMonth(-1, true)" class="p-1 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-90 font-bold text-slate-600 px-3 py-1 text-sm border">◀</button>
+          <h4 id="top-calendar-title" class="font-extrabold text-sm text-slate-700">2026年 5月</h4>
+          <button onclick="changeCalendarMonth(1, true)" class="p-1 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-90 font-bold text-slate-600 px-3 py-1 text-sm border">▶</button>
+        </div>
+        
+        <!-- Calendar Grid -->
+        <div class="grid grid-cols-7 gap-1 text-center text-xs">
+          <!-- Days of Week -->
+          <div class="font-bold text-rose-500">日</div>
+          <div class="font-bold text-slate-500">月</div>
+          <div class="font-bold text-slate-500">火</div>
+          <div class="font-bold text-slate-500">水</div>
+          <div class="font-bold text-slate-500">木</div>
+          <div class="font-bold text-slate-500">金</div>
+          <div class="font-bold text-indigo-500">土</div>
+          
+          <!-- Calendar Days Grid (Filled by JS) -->
+          <div id="top-calendar-days" class="grid grid-cols-7 gap-y-2 col-span-7 mt-1"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SCREEN 2: GAME BOARD                       -->
+    <!-- ========================================== -->
+    <div id="screen-game" class="hidden flex-1 flex flex-col justify-between space-y-4 py-2 animate-pop">
+      
+      <!-- Top Section: Fairy Portrait and Speech Bubble -->
+      <div class="flex items-center gap-3 bg-white bg-opacity-80 p-3 rounded-3xl shadow-sm border border-pink-100">
+        <!-- Fairy Avatar (interactive) -->
+        <div id="game-fairy-avatar" class="w-20 h-20 flex-shrink-0 cursor-pointer active:scale-90 transition-transform">
+          <!-- Rendered dynamically -->
+        </div>
+        <!-- Speech Bubble -->
+        <div class="flex-1 relative bg-pink-50 border-2 border-pink-200 rounded-2xl p-2 shadow-inner">
+          <div class="absolute -left-3 top-1/2 transform -translate-y-1/2 w-0 h-0 border-r-8 border-r-pink-200 border-y-8 border-y-transparent"></div>
+          <div class="absolute -left-2 top-1/2 transform -translate-y-1/2 w-0 h-0 border-r-8 border-r-pink-50 border-y-8 border-y-transparent"></div>
+          <p id="game-speech-bubble" class="text-sm font-bold text-pink-600 leading-snug">
+            えいえいおー！ ぜんぶ ますを うめてね！
+          </p>
+        </div>
+      </div>
+
+      <!-- Dashboard: Timer & Progress Bar -->
+      <div class="flex items-center justify-between px-2 text-slate-500 text-sm font-bold">
+        <div class="flex items-center gap-2">
+          <span>⏱️ じかん:</span>
+          <span id="game-timer" class="text-base text-pink-600 bg-white px-2 py-0.5 rounded-full shadow-sm">00:00</span>
+        </div>
+        <div class="flex-1 max-w-[200px] ml-4 bg-slate-200 rounded-full h-3 overflow-hidden shadow-inner flex items-center relative">
+          <div id="game-progress-bar" class="bg-gradient-to-r from-pink-400 to-yellow-400 h-full w-0 transition-all duration-300"></div>
+        </div>
+        <button onclick="confirmExit()" class="ml-2 bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-xs font-bold border-b border-slate-300 active:scale-95">
+          もどる
+        </button>
+      </div>
+
+      <!-- Middle Section: The Math Grid -->
+      <div class="flex-1 flex items-center justify-center min-h-[220px] max-h-[380px] overflow-auto no-scrollbar border-2 border-pink-100 rounded-3xl p-2 bg-white shadow-inner relative">
+        <div class="overflow-auto max-w-full max-h-full no-scrollbar" id="grid-scroll-container">
+          <div id="math-grid" class="grid select-none">
+            <!-- Dynamically generated math grid -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Section: On-Screen Keypad -->
+      <div class="w-full bg-slate-50 rounded-3xl p-3 shadow-md border border-slate-200 space-y-2">
+        <div class="grid grid-cols-3 gap-2.5 max-w-xs mx-auto">
+          <button onclick="onKeyInput('1')" class="key-press py-3 bg-white hover:bg-slate-50 text-2xl font-extrabold rounded-2xl shadow border-b-4 border-slate-200 text-slate-700 select-none">1</button>
+          <button onclick="onKeyInput('2')" class="key-press py-3 bg-white hover:bg-slate-50 text-2xl font-extrabold rounded-2xl shadow border-b-4 border-slate-200 text-slate-700 select-none">2</button>
+          <button onclick="onKeyInput('3')" class="key-press py-3 bg-white hover:bg-slate-50 text-2xl font-extrabold rounded-2xl shadow border-b-4 border-slate-200 text-slate-700 select-none">3</button>
+
+          <button onclick="onKeyInput('4')" class="key-press py-3 bg-white hover:bg-slate-50 text-2xl font-extrabold rounded-2xl shadow border-b-4 border-slate-200 text-slate-700 select-none">4</button>
+          <button onclick="onKeyInput('5')" class="key-press py-3 bg-white hover:bg-slate-50 text-2xl font-extrabold rounded-2xl shadow border-b-4 border-slate-200 text-slate-700 select-none">5</button>
+          <button onclick="onKeyInput('6')" class="key-press py-3 bg-white hover:bg-slate-50 text-2xl font-extrabold rounded-2xl shadow border-b-4 border-slate-200 text-slate-700 select-none">6</button>
+
+          <button onclick="onKeyInput('7')" class="key-press py-3 bg-white hover:bg-slate-50 text-2xl font-extrabold rounded-2xl shadow border-b-4 border-slate-200 text-slate-700 select-none">7</button>
+          <button onclick="onKeyInput('8')" class="key-press py-3 bg-white hover:bg-slate-50 text-2xl font-extrabold rounded-2xl shadow border-b-4 border-slate-200 text-slate-700 select-none">8</button>
+          <button onclick="onKeyInput('9')" class="key-press py-3 bg-white hover:bg-slate-50 text-2xl font-extrabold rounded-2xl shadow border-b-4 border-slate-200 text-slate-700 select-none">9</button>
+
+          <button onclick="onKeyInput('delete')" class="key-press py-3 bg-amber-100 hover:bg-amber-200 text-lg font-bold rounded-2xl shadow border-b-4 border-amber-300 text-amber-700 select-none">けす</button>
+          <button onclick="onKeyInput('0')" class="key-press py-3 bg-white hover:bg-slate-50 text-2xl font-extrabold rounded-2xl shadow border-b-4 border-slate-200 text-slate-700 select-none">0</button>
+          <button onclick="onKeyInput('next')" class="key-press py-3 bg-indigo-500 hover:bg-indigo-600 text-white text-lg font-bold rounded-2xl shadow border-b-4 border-indigo-700 select-none">つぎへ</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SCREEN 3: VICTORY & REWARD SCREEN          -->
+    <!-- ========================================== -->
+    <div id="screen-victory" class="hidden flex-1 flex flex-col justify-between space-y-6 py-4 animate-pop relative">
+      
+      <!-- Canvas for Confetti -->
+      <canvas id="confetti-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-10 rounded-3xl"></canvas>
+
+      <!-- Victory Character Display -->
+      <div class="text-center space-y-3 z-20">
+        <h2 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 animate-bounce py-2">
+          💮 オールクリア 💮
+        </h2>
+        <div id="victory-character-portrait" class="w-36 h-36 mx-auto animate-bounce-slow cursor-pointer">
+          <!-- Rendered dynamically -->
+        </div>
+        
+        <!-- Reward Dialogue Bubble -->
+        <div class="relative bg-white border-4 border-yellow-300 rounded-3xl p-4 shadow-md max-w-sm mx-auto mt-2">
+          <p id="victory-speech-bubble" class="text-center text-lg font-extrabold text-pink-600 tracking-wide leading-relaxed">
+            やったー！ ぜんぶ できたね！<br>ハナマルあげる！ 💮
+          </p>
+        </div>
+      </div>
+
+      <!-- Time Summary -->
+      <div class="bg-gradient-to-r from-yellow-100 to-pink-100 p-4 rounded-3xl border border-yellow-200 text-center max-w-sm mx-auto shadow z-20">
+        <p class="text-slate-500 font-bold text-sm">かかった じかん</p>
+        <p id="victory-time-display" class="text-3xl font-extrabold text-pink-600">00:00</p>
+      </div>
+
+      <!-- Stamp Calendar Section -->
+      <div class="bg-white rounded-3xl p-4 shadow border border-pink-100 space-y-3 z-20">
+        <div class="flex items-center justify-between px-2">
+          <button onclick="changeCalendarMonth(-1)" class="p-1 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-90 font-bold text-slate-600 px-3 py-1 text-sm border">◀</button>
+          <h4 id="calendar-title" class="font-extrabold text-base text-slate-700">2026年 5月</h4>
+          <button onclick="changeCalendarMonth(1)" class="p-1 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-90 font-bold text-slate-600 px-3 py-1 text-sm border">▶</button>
+        </div>
+        
+        <!-- Calendar Grid -->
+        <div class="grid grid-cols-7 gap-1 text-center text-xs">
+          <!-- Days of Week -->
+          <div class="font-bold text-rose-500">日</div>
+          <div class="font-bold text-slate-500">月</div>
+          <div class="font-bold text-slate-500">火</div>
+          <div class="font-bold text-slate-500">水</div>
+          <div class="font-bold text-slate-500">木</div>
+          <div class="font-bold text-slate-500">金</div>
+          <div class="font-bold text-indigo-500">土</div>
+          
+          <!-- Calendar Days Grid (Filled by JS) -->
+          <div id="calendar-days" class="grid grid-cols-7 gap-y-2 col-span-7 mt-1"></div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex justify-center pt-2 z-20">
+        <button onclick="goToSettings()" class="w-full max-w-xs py-4 bg-gradient-to-r from-yellow-400 to-orange-400 text-white font-extrabold text-xl rounded-full shadow-lg border-b-8 border-orange-600 active:scale-95 transition-all">
+          もういちど あそぶ！ 🎮
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Tailwind CSS class safelist for JIT compilation -->
+  <div class="hidden from-rose-500 to-rose-600 border-rose-700 from-purple-500 to-purple-600 border-purple-700 from-amber-500 to-amber-600 border-amber-700 from-orange-500 to-orange-600 border-orange-700 from-pink-500 to-pink-600 border-pink-700 from-rose-400 to-rose-500 border-rose-600 from-purple-400 to-purple-500 border-purple-600 from-amber-400 to-amber-500 border-amber-600 from-orange-400 to-orange-500 border-orange-600 from-pink-400 to-pink-500 border-pink-600"></div>
+
+  <!-- PWA service worker registration script -->
+  <script src="./register-sw.js"></script>
+
+  <!-- Sound Synth, State, and Game Logic Scripts -->
+  <script>
+    // ==========================================
+    // 1. CHARACTER DEFINITIONS
+    // ==========================================
+    
+    // The 5 Fruit Fairy Character Configurations
+    const CHARACTERS = [
+      {
+        id: 'apple',
+        name: 'りんご',
+        emoji: '🍎',
+        imagePath: './Character/apple.png',
+        theme: {
+          bg: 'from-red-50 to-rose-100',
+          bubbleBorder: 'border-rose-300',
+          bubbleText: 'text-rose-600',
+          accent: 'rose',
+          gradientStyle: 'linear-gradient(to right, #f43f5e, #e11d48)',
+          borderStyle: '#be123c',
+          activeGradientStyle: 'linear-gradient(to right, #fb7185, #f43f5e)',
+          activeBorderStyle: '#e11d48'
+        },
+        dialogues: {
+          launch: "いっしょに けいさん がんばろう！<br>どれにする？",
+          start: "えいえいおー！ ぜんぶ ますを うめてね！",
+          correct: ["すごーい！", "てんさい！", "そのちょうし！", "やったね！"],
+          incorrect: "おしい！ もういちど やってみよう！",
+          victory: "やったー！ ぜんぶ できたね！ ハナマルあげる！ 💮"
+        }
+      },
+      {
+        id: 'grape',
+        name: 'ぶどう',
+        emoji: '🍇',
+        imagePath: './Character/grape.png',
+        theme: {
+          bg: 'from-purple-50 to-indigo-100',
+          bubbleBorder: 'border-purple-300',
+          bubbleText: 'text-purple-600',
+          accent: 'purple',
+          gradientStyle: 'linear-gradient(to right, #a855f7, #9333ea)',
+          borderStyle: '#7e22ce',
+          activeGradientStyle: 'linear-gradient(to right, #c084fc, #a855f7)',
+          activeBorderStyle: '#9333ea'
+        },
+        dialogues: {
+          launch: "いっしょに けいさん がんばろう！<br>どれにする？",
+          start: "えいえいおー！ ぜんぶ ますを うめてね！",
+          correct: ["すごーい！", "てんさい！", "そのちょうし！", "すてき！"],
+          incorrect: "おしい！ もういちど やってみよう！",
+          victory: "やったー！ ぜんぶ できたね！ ハナマルあげる！ 💮"
+        }
+      },
+      {
+        id: 'lemon',
+        name: 'れもん',
+        emoji: '🍋',
+        imagePath: './Character/lemon.png',
+        theme: {
+          bg: 'from-yellow-50 to-amber-100',
+          bubbleBorder: 'border-amber-300',
+          bubbleText: 'text-amber-600',
+          accent: 'amber',
+          gradientStyle: 'linear-gradient(to right, #f59e0b, #d97706)',
+          borderStyle: '#b45309',
+          activeGradientStyle: 'linear-gradient(to right, #fbbf24, #f59e0b)',
+          activeBorderStyle: '#d97706'
+        },
+        dialogues: {
+          launch: "いっしょに けいさん がんばろう！<br>どれにする？",
+          start: "えいえいおー！ ぜんぶ ますを うめてね！",
+          correct: ["すごーい！", "てんさい！", "そのちょうし！", "ピカイチ！"],
+          incorrect: "おしい！ もういちど やってみよう！",
+          victory: "やったー！ ぜんぶ できたね！ ハナマルあげる！ 💮"
+        }
+      },
+      {
+        id: 'orange',
+        name: 'みかん',
+        emoji: '🍊',
+        imagePath: './Character/orange.png',
+        theme: {
+          bg: 'from-orange-50 to-amber-100',
+          bubbleBorder: 'border-orange-300',
+          bubbleText: 'text-orange-600',
+          accent: 'orange',
+          gradientStyle: 'linear-gradient(to right, #f97316, #ea580c)',
+          borderStyle: '#c2410c',
+          activeGradientStyle: 'linear-gradient(to right, #fb923c, #f97316)',
+          activeBorderStyle: '#ea580c'
+        },
+        dialogues: {
+          launch: "いっしょに けいさん がんばろう！<br>どれにする？",
+          start: "えいえいおー！ ぜんぶ ますを うめてね！",
+          correct: ["すごーい！", "てんさい！", "そのちょうし！", "はなまる！"],
+          incorrect: "おしい！ もういちど やってみよう！",
+          victory: "やったー！ ぜんぶ できたね！ ハナマルあげる！ 💮"
+        }
+      },
+      {
+        id: 'strawberry',
+        name: 'いちご',
+        emoji: '🍓',
+        imagePath: './Character/strawberry.jpg',
+        theme: {
+          bg: 'from-pink-50 to-rose-100',
+          bubbleBorder: 'border-pink-300',
+          bubbleText: 'text-pink-600',
+          accent: 'pink',
+          gradientStyle: 'linear-gradient(to right, #ec4899, #db2777)',
+          borderStyle: '#be185d',
+          activeGradientStyle: 'linear-gradient(to right, #f472b6, #ec4899)',
+          activeBorderStyle: '#db2777'
+        },
+        dialogues: {
+          launch: "いっしょに けいさん がんばろう！<br>どれにする？",
+          start: "えいえいおー！ ぜんぶ ますを うめてね！",
+          correct: ["すごーい！", "てんさい！", "そのちょうし！", "きらきら！"],
+          incorrect: "おしい！ もういちど やってみよう！",
+          victory: "やったー！ ぜんぶ できたね！ ハナマルあげる！ 💮"
+        }
+      }
+    ];
+
+    // ==========================================
+    // 2. AUDIO SYNTHESIS (WEB AUDIO API)
+    // ==========================================
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playSound(type) {
+      initAudio();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'correct') {
+        // High-pitched happy double chime (E6 then A6)
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        const gain2 = audioCtx.createGain();
+
+        osc1.type = 'triangle';
+        osc1.frequency.setValueAtTime(1318.51, now); // E6
+        gain1.gain.setValueAtTime(0, now);
+        gain1.gain.linearRampToValueAtTime(0.3, now + 0.02);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.16);
+
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(1760.00, now + 0.08); // A6
+        gain2.gain.setValueAtTime(0, now + 0.08);
+        gain2.gain.linearRampToValueAtTime(0.3, now + 0.1);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(now + 0.08);
+        osc2.stop(now + 0.36);
+
+      } else if (type === 'incorrect') {
+        // Soft cartoon sliding down boing
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.25);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.4, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.26);
+
+      } else if (type === 'victory') {
+        // Bouncy upward fanfare chord progression
+        const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          const startDelay = idx * 0.12;
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + startDelay);
+          
+          gain.gain.setValueAtTime(0, now + startDelay);
+          gain.gain.linearRampToValueAtTime(0.2, now + startDelay + 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + startDelay + 0.6);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + startDelay);
+          osc.stop(now + startDelay + 0.61);
+        });
+
+        // Add a final nice harmonic chord
+        const finalDelay = 0.5;
+        const chord = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        chord.forEach((freq) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + finalDelay);
+          
+          gain.gain.setValueAtTime(0, now + finalDelay);
+          gain.gain.linearRampToValueAtTime(0.15, now + finalDelay + 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + finalDelay + 1.2);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + finalDelay);
+          osc.stop(now + finalDelay + 1.25);
+        });
+      } else if (type === 'tap') {
+        // Soft button tap chime
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      }
+    }
+
+    // ==========================================
+    // 3. APPLICATION STATE
+    // ==========================================
+    let state = {
+      currentScreen: 'settings', // 'settings', 'game', 'victory'
+      selectedCharacter: CHARACTERS[0], // Default Apple
+      gridSize: 3, // 3, 5, 10
+      operation: '+', // '+', '-', '*', '/'
+      leftHeaders: [],
+      topHeaders: [],
+      factors: [], // Used for division rules
+      gridMatrix: [], // 2D array of cells: { row, col, val, correct, isCorrect }
+      activeCell: null, // { row, col }
+      timerInterval: null,
+      timerSeconds: 0,
+      completedStamps: {}, // stores completed stamps per day: { "YYYY-MM-DD": ["apple", "grape", ...] }
+      calendarYear: 2026,
+      calendarMonth: 5 // 5 represents May (0-indexed represents 1-indexed for simple view)
+    };
+
+    // Load initial completed stamps from LocalStorage
+    try {
+      const storedStamps = localStorage.getItem('hyakumasu_completed_stamps');
+      if (storedStamps) {
+        state.completedStamps = JSON.parse(storedStamps);
+      } else {
+        state.completedStamps = {};
+      }
+    } catch(e) {
+      console.error("LocalStorage load error:", e);
+      state.completedStamps = {};
+    }
+
+    // Initialize calendar details from current date
+    const today = new Date();
+    state.calendarYear = today.getFullYear();
+    state.calendarMonth = today.getMonth() + 1; // 1-12
+
+    // ==========================================
+    // 4. SCREEN RENDERING & FLOW
+    // ==========================================
+    function showScreen(screenId) {
+      document.getElementById('screen-settings').classList.add('hidden');
+      document.getElementById('screen-game').classList.add('hidden');
+      document.getElementById('screen-victory').classList.add('hidden');
+      
+      document.getElementById(screenId).classList.remove('hidden');
+    }
+
+    // Setup character grid in Settings screen
+    function renderCharacterSelection() {
+      const grid = document.getElementById('character-grid');
+      grid.innerHTML = '';
+      CHARACTERS.forEach((char) => {
+        const isSelected = char.id === state.selectedCharacter.id;
+        const btn = document.createElement('div');
+        btn.id = `char-btn-${char.id}`;
+        btn.className = `flex flex-col items-center p-2 rounded-2xl cursor-pointer transition-all duration-300 border-4 ${
+          isSelected 
+            ? 'bg-white border-pink-400 shadow-md scale-105 ring-4 ring-pink-200 ring-opacity-50' 
+            : 'bg-white bg-opacity-50 border-transparent hover:bg-white hover:scale-102'
+        }`;
+        
+        btn.onclick = () => selectCharacter(char);
+        
+        btn.innerHTML = `
+          <div class="w-16 h-16 animate-float flex items-center justify-center" style="animation-delay: ${Math.random() * 2}s">
+            <img src="${char.imagePath}" alt="${char.name}" class="max-w-full max-h-full object-contain rounded-full shadow-sm bg-white p-1">
+          </div>
+          <span class="text-xs font-extrabold mt-1 text-slate-600">${char.name}</span>
+        `;
+        
+        grid.appendChild(btn);
+      });
+    }
+
+    function selectCharacter(char, silent = false) {
+      if (!silent) playSound('tap');
+      state.selectedCharacter = char;
+      renderCharacterSelection();
+      
+      // Update backgrounds and accent themes
+      const appContainer = document.getElementById('app');
+      // Reset background gradients
+      document.body.className = `bg-gradient-to-b ${char.theme.bg} min-h-screen text-slate-700 flex flex-col items-center justify-start overflow-x-hidden transition-all duration-500`;
+      
+      // Speech Bubble Text Update
+      const bubble = document.getElementById('settings-speech-bubble');
+      bubble.innerHTML = char.dialogues.launch;
+      
+      // Dynamic bubble borders & text colors
+      bubble.parentElement.className = `relative bg-white border-4 ${char.theme.bubbleBorder} rounded-3xl p-4 shadow-md max-w-sm mx-auto animate-float`;
+      bubble.className = `text-center text-base font-bold ${char.theme.bubbleText} tracking-wide`;
+      
+      // Update Start button colors using inline styles for absolute reliability
+      const startBtn = document.getElementById('btn-start');
+      startBtn.style.backgroundImage = char.theme.gradientStyle;
+      startBtn.style.borderColor = char.theme.borderStyle;
+      
+      // Update active control button colors to match the selected character colors
+      updateControlColors();
+    }
+
+    function updateControlColors() {
+      const theme = state.selectedCharacter.theme;
+      // Size buttons
+      [3, 5, 10].forEach((s) => {
+        const btn = document.getElementById(`btn-size-${s}`);
+        if (btn) {
+          if (s === state.gridSize) {
+            btn.style.backgroundImage = theme.activeGradientStyle;
+            btn.style.borderColor = theme.activeBorderStyle;
+            btn.style.color = '#ffffff';
+            btn.classList.add('shadow-md');
+          } else {
+            btn.style.backgroundImage = 'none';
+            btn.style.borderColor = '#cbd5e1'; // border-slate-300
+            btn.style.color = '#475569'; // text-slate-600
+            btn.classList.remove('shadow-md');
+          }
+        }
+      });
+      // Operation buttons
+      const ops = { '+': 'add', '-': 'sub', '*': 'mul', '/': 'div' };
+      Object.keys(ops).forEach((key) => {
+        const btn = document.getElementById(`btn-op-${ops[key]}`);
+        if (btn) {
+          if (key === state.operation) {
+            btn.style.backgroundImage = theme.activeGradientStyle;
+            btn.style.borderColor = theme.activeBorderStyle;
+            btn.style.color = '#ffffff';
+            btn.classList.add('shadow-md');
+          } else {
+            btn.style.backgroundImage = 'none';
+            btn.style.borderColor = '#cbd5e1'; // border-slate-300
+            btn.style.color = '#475569'; // text-slate-600
+            btn.classList.remove('shadow-md');
+          }
+        }
+      });
+    }
+
+    function setGridSize(size, silent = false) {
+      if (!silent) playSound('tap');
+      state.gridSize = size;
+      updateControlColors();
+    }
+
+    function setOperation(op, silent = false) {
+      if (!silent) playSound('tap');
+      state.operation = op;
+      updateControlColors();
+    }
+
+    // ==========================================
+    // 5. GAME BOARD & MATRIX GENERATION
+    // ==========================================
+    function generateGridData() {
+      const N = state.gridSize;
+      const op = state.operation;
+      
+      let left = [];
+      let top = [];
+      let factors = []; // used for division factors
+
+      if (op === '+') {
+        // Addition: unique numbers from 0-9
+        const poolL = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+        left = poolL.slice(0, N);
+        const poolT = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+        top = poolT.slice(0, N);
+      } else if (op === '*') {
+        // Multiplication: unique numbers from 0-9
+        const poolL = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+        left = poolL.slice(0, N);
+        const poolT = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+        top = poolT.slice(0, N);
+      } else if (op === '-') {
+        // Subtraction: unique numbers from 0-9
+        const poolL = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+        left = poolL.slice(0, N);
+        
+        // Top values: must be >= all left values to avoid negatives.
+        // Min top must be >= max left. Max left in pool is 9.
+        // So top values should be from 9 to 18 (or 10 to 19).
+        const poolT = Array.from({ length: 10 }, (_, i) => i + 9).sort(() => Math.random() - 0.5);
+        top = poolT.slice(0, N);
+      } else if (op === '/') {
+        // Division: unique divisors and unique answers (factors)
+        const poolL = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].sort(() => Math.random() - 0.5);
+        left = poolL.slice(0, N);
+        
+        // Generate a unique shuffled list of factors 1-10 for each row to keep answers unique
+        factors = [];
+        for (let r = 0; r < N; r++) {
+          const rowFactors = Array.from({ length: 10 }, (_, i) => i + 1).sort(() => Math.random() - 0.5).slice(0, N);
+          factors.push(rowFactors);
+        }
+      }
+
+      state.leftHeaders = left;
+      state.topHeaders = top;
+      state.factors = factors;
+
+      // Construct Grid Matrix
+      state.gridMatrix = [];
+      for (let r = 0; r < N; r++) {
+        const rowData = [];
+        for (let c = 0; c < N; c++) {
+          let leftVal = left[r];
+          let topVal = top[c];
+          let answer = 0;
+
+          if (op === '+') {
+            answer = leftVal + topVal;
+          } else if (op === '-') {
+            answer = topVal - leftVal;
+          } else if (op === '*') {
+            answer = leftVal * topVal;
+          } else if (op === '/') {
+            // For division, topVal for row r, col c is: leftVal * factors[r][c]
+            topVal = leftVal * factors[r][c];
+            answer = factors[r][c]; // Answer is the factor itself (clean division result)
+          }
+
+          rowData.push({
+            row: r,
+            col: c,
+            leftVal: leftVal,
+            topVal: topVal,
+            correctAnswer: answer,
+            userAnswer: '',
+            isCorrect: false
+          });
+        }
+        state.gridMatrix.push(rowData);
+      }
+    }
+
+    function renderGameBoard() {
+      const gridContainer = document.getElementById('math-grid');
+      const N = state.gridSize;
+      
+      // Determine CSS width of grid cells based on size
+      let cellClass = 'grid-cell-3x3';
+      if (N === 5) cellClass = 'grid-cell-5x5';
+      if (N === 10) cellClass = 'grid-cell-10x10';
+
+      // Setup grid layout structure (N+1 columns)
+      gridContainer.style.gridTemplateColumns = `repeat(${N + 1}, minmax(0, max-content))`;
+      gridContainer.innerHTML = '';
+
+      // --- 1. Top-Left Corner Operator Cell ---
+      const corner = document.createElement('div');
+      corner.className = `${cellClass} flex items-center justify-center bg-pink-100 rounded-2xl border-4 border-white font-extrabold text-pink-600 shadow-inner`;
+      
+      const opSign = state.operation === '*' ? '×' : (state.operation === '/' ? '÷' : state.operation);
+      corner.textContent = opSign;
+      gridContainer.appendChild(corner);
+
+      // --- 2. Top Header Row ---
+      for (let c = 0; c < N; c++) {
+        const th = document.createElement('div');
+        th.id = `top-header-${c}`;
+        th.className = `${cellClass} flex items-center justify-center bg-amber-100 rounded-2xl border-4 border-white font-extrabold text-amber-600 shadow-sm transition-all duration-300`;
+        
+        // For division, we display the multiples for the currently active row
+        if (state.operation === '/') {
+          const activeRow = state.activeCell ? state.activeCell.row : 0;
+          th.textContent = state.gridMatrix[activeRow][c].topVal;
+        } else {
+          th.textContent = state.topHeaders[c];
+        }
+        
+        gridContainer.appendChild(th);
+      }
+
+      // --- 3. Grid Content Rows ---
+      for (let r = 0; r < N; r++) {
+        // --- 3a. Left Header Cell ---
+        const lh = document.createElement('div');
+        lh.id = `left-header-${r}`;
+        lh.className = `${cellClass} flex items-center justify-center bg-indigo-100 rounded-2xl border-4 border-white font-extrabold text-indigo-600 shadow-sm transition-all duration-300`;
+        lh.textContent = state.leftHeaders[r];
+        gridContainer.appendChild(lh);
+
+        // --- 3b. Intersection Input Cells ---
+        for (let c = 0; c < N; c++) {
+          const cellData = state.gridMatrix[r][c];
+          const cell = document.createElement('div');
+          cell.id = `cell-${r}-${c}`;
+          
+          let stateStyles = '';
+          if (cellData.isCorrect) {
+            stateStyles = 'bg-emerald-100 border-emerald-400 text-emerald-600 font-extrabold';
+          } else {
+            stateStyles = 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100';
+          }
+
+          cell.className = `${cellClass} flex items-center justify-center rounded-2xl border-2 shadow-inner cursor-pointer font-bold transition-all duration-200 select-none relative ${stateStyles}`;
+          
+          // Inside label container
+          cell.innerHTML = `
+            <span>${cellData.userAnswer}</span>
+            ${cellData.isCorrect ? '<span class="absolute right-0.5 bottom-0.5 text-[8px] sm:text-xs">💮</span>' : ''}
+          `;
+
+          cell.onclick = () => selectCell(r, c);
+          gridContainer.appendChild(cell);
+        }
+      }
+
+      // Apply highlights to row and column headers based on active cell
+      highlightHeaders();
+    }
+
+    function selectCell(r, c) {
+      // If cell is already solved, let them click but keep active selection
+      const cellData = state.gridMatrix[r][c];
+      
+      // Set active cell
+      state.activeCell = { row: r, col: c };
+      
+      // For division, dynamic headers need to update when row changes
+      if (state.operation === '/') {
+        // Update top row headers
+        for (let col = 0; col < state.gridSize; col++) {
+          const th = document.getElementById(`top-header-${col}`);
+          if (th) {
+            th.textContent = state.gridMatrix[r][col].topVal;
+            // Add a little pop effect to top headers on change
+            th.classList.add('scale-105');
+            setTimeout(() => th.classList.remove('scale-105'), 200);
+          }
+        }
+      }
+
+      // Re-render highlight classes
+      document.querySelectorAll('[id^="cell-"]').forEach((element) => {
+        const idParts = element.id.split('-');
+        const cellR = parseInt(idParts[1]);
+        const cellC = parseInt(idParts[2]);
+        const data = state.gridMatrix[cellR][cellC];
+        
+        // Remove active outline
+        element.classList.remove('ring-4', 'ring-yellow-400', 'border-yellow-400', 'bg-yellow-50', 'animate-pulse-glow');
+        
+        // Restore standard styles based on state
+        if (data.isCorrect) {
+          element.className = element.className.replace(/bg-\w+-100|border-\w+-400|text-\w+-600/g, '').trim();
+          element.classList.add('bg-emerald-100', 'border-emerald-400', 'text-emerald-600');
+        } else {
+          // Reset default styling
+          element.classList.remove('bg-emerald-100', 'border-emerald-400', 'text-emerald-600');
+          if (cellR === r && cellC === c) {
+            // Selected active cell styling
+            element.classList.add('bg-yellow-50', 'border-yellow-400', 'animate-pulse-glow');
+          } else {
+            element.classList.add('bg-slate-50', 'border-slate-200');
+          }
+        }
+      });
+
+      highlightHeaders();
+    }
+
+    function highlightHeaders() {
+      const N = state.gridSize;
+      const active = state.activeCell;
+
+      for (let i = 0; i < N; i++) {
+        const th = document.getElementById(`top-header-${i}`);
+        const lh = document.getElementById(`left-header-${i}`);
+        
+        if (th) {
+          th.classList.remove('ring-2', 'ring-amber-400', 'scale-105');
+          if (active && active.col === i) {
+            th.classList.add('ring-2', 'ring-amber-400', 'scale-105');
+          }
+        }
+        if (lh) {
+          lh.classList.remove('ring-2', 'ring-indigo-400', 'scale-105');
+          if (active && active.row === i) {
+            lh.classList.add('ring-2', 'ring-indigo-400', 'scale-105');
+          }
+        }
+      }
+    }
+
+    // ==========================================
+    // 6. NUMPAD INPUT LOGIC
+    // ==========================================
+    function onKeyInput(key) {
+      if (!state.activeCell) return;
+      
+      const { row, col } = state.activeCell;
+      const cellData = state.gridMatrix[row][col];
+      
+      // If already correct, ignore inputs (cannot modify solved cells)
+      if (cellData.isCorrect) {
+        if (key === 'next') {
+          moveToNextCell();
+        }
+        return;
+      }
+
+      playSound('tap');
+
+      if (key === 'delete') {
+        cellData.userAnswer = cellData.userAnswer.slice(0, -1);
+      } else if (key === 'next') {
+        // Force manual check/next trigger
+        checkAnswer(row, col, true);
+        moveToNextCell();
+        return;
+      } else {
+        // Number typed. Concatenate (max 3 digits for safety)
+        if (cellData.userAnswer.length < 3) {
+          cellData.userAnswer += key;
+        }
+      }
+
+      // Update UI text instantly
+      const cellDiv = document.getElementById(`cell-${row}-${col}`);
+      if (cellDiv) {
+        cellDiv.querySelector('span').textContent = cellData.userAnswer;
+      }
+
+      // Auto-validate immediately as they type
+      checkAnswer(row, col, false);
+    }
+
+    function checkAnswer(r, c, forceNext) {
+      const cellData = state.gridMatrix[r][c];
+      const parsedAns = parseInt(cellData.userAnswer);
+
+      if (parsedAns === cellData.correctAnswer) {
+        // CORRECT ANSWER!
+        cellData.isCorrect = true;
+        
+        playSound('correct');
+        
+        // Update styling
+        const cellDiv = document.getElementById(`cell-${r}-${c}`);
+        if (cellDiv) {
+          cellDiv.className = cellDiv.className.replace(/bg-\w+-\d+|border-\w+-\d+|text-\w+-\d+|animate-pulse-glow/g, '').trim();
+          cellDiv.classList.add('bg-emerald-100', 'border-emerald-400', 'text-emerald-600', 'font-extrabold');
+          cellDiv.innerHTML = `
+            <span>${cellData.userAnswer}</span>
+            <span class="absolute right-0.5 bottom-0.5 text-[8px] sm:text-xs">💮</span>
+          `;
+        }
+
+        // Random dialogue
+        updateGameSpeechBubble('correct');
+        
+        // Update progress bar
+        updateProgress();
+
+        // Check if game complete
+        if (checkGameCompletion()) {
+          endGame();
+        } else {
+          // Delay briefly then auto-advance to next empty cell
+          setTimeout(() => {
+            moveToNextCell();
+          }, 200);
+        }
+      } else {
+        // If wrong and they hit enter (forceNext) OR length matches correct answer length
+        const ansLen = String(cellData.correctAnswer).length;
+        if (forceNext || cellData.userAnswer.length >= ansLen) {
+          // Play fail feedback only when they typed enough characters or pressed enter
+          playSound('incorrect');
+          updateGameSpeechBubble('incorrect');
+          
+          // Briefly wiggle or flash the cell in red
+          const cellDiv = document.getElementById(`cell-${r}-${c}`);
+          if (cellDiv) {
+            cellDiv.classList.add('border-red-400', 'bg-red-50');
+            setTimeout(() => {
+              cellDiv.classList.remove('border-red-400', 'bg-red-50');
+            }, 500);
+          }
+        }
+      }
+    }
+
+    function moveToNextCell() {
+      const N = state.gridSize;
+      if (!state.activeCell) return;
+
+      const { row, col } = state.activeCell;
+      
+      // Find the next cell in row-major order that is not solved yet
+      let curR = row;
+      let curC = col;
+
+      for (let i = 0; i < N * N; i++) {
+        curC++;
+        if (curC >= N) {
+          curC = 0;
+          curR++;
+          if (curR >= N) {
+            curR = 0;
+          }
+        }
+
+        if (!state.gridMatrix[curR][curC].isCorrect) {
+          selectCell(curR, curC);
+          return;
+        }
+      }
+      
+      // If we couldn't find any unsolved cells, but game isn't over (some cells might have wrong answers),
+      // just select the first incorrect cell
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          if (!state.gridMatrix[r][c].isCorrect) {
+            selectCell(r, c);
+            return;
+          }
+        }
+      }
+    }
+
+    function updateProgress() {
+      const N = state.gridSize;
+      let solved = 0;
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          if (state.gridMatrix[r][c].isCorrect) solved++;
+        }
+      }
+
+      const pct = (solved / (N * N)) * 100;
+      document.getElementById('game-progress-bar').style.width = `${pct}%`;
+    }
+
+    function checkGameCompletion() {
+      const N = state.gridSize;
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          if (!state.gridMatrix[r][c].isCorrect) return false;
+        }
+      }
+      return true;
+    }
+
+    // ==========================================
+    // 7. TIMER & DIALOGUE
+    // ==========================================
+    function startTimer() {
+      state.timerSeconds = 0;
+      document.getElementById('game-timer').textContent = '00:00';
+      
+      clearInterval(state.timerInterval);
+      state.timerInterval = setInterval(() => {
+        state.timerSeconds++;
+        const mins = String(Math.floor(state.timerSeconds / 60)).padStart(2, '0');
+        const secs = String(state.timerSeconds % 60).padStart(2, '0');
+        document.getElementById('game-timer').textContent = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function updateGameSpeechBubble(type) {
+      const bubble = document.getElementById('game-speech-bubble');
+      const dialogs = state.selectedCharacter.dialogues;
+
+      if (type === 'start') {
+        bubble.textContent = dialogs.start;
+      } else if (type === 'correct') {
+        const rand = dialogs.correct[Math.floor(Math.random() * dialogs.correct.length)];
+        bubble.textContent = rand;
+      } else if (type === 'incorrect') {
+        bubble.textContent = dialogs.incorrect;
+      } else if (type === 'victory') {
+        bubble.textContent = dialogs.victory;
+      }
+    }
+
+    // ==========================================
+    // 8. FLOW TRANSITIONS
+    // ==========================================
+    function startGame() {
+      initAudio();
+      playSound('tap');
+      
+      // Prepare Game Parameters
+      generateGridData();
+      
+      // Default select the top-left cell (0, 0)
+      state.activeCell = { row: 0, col: 0 };
+      
+      // Set Theme Styles on Game Screen
+      const char = state.selectedCharacter;
+      const gameScreen = document.getElementById('screen-game');
+      
+      // Render Character Portrait in Game Screen
+      const portraitContainer = document.getElementById('game-fairy-avatar');
+      portraitContainer.innerHTML = `<img src="${char.imagePath}" alt="${char.name}" class="w-full h-full object-contain rounded-full border-2 border-white shadow bg-white p-1">`;
+      
+      // Bubble styles
+      const bubbleDiv = portraitContainer.nextElementSibling;
+      bubbleDiv.className = `flex-1 relative bg-${char.theme.accent}-50 border-2 ${char.theme.bubbleBorder} rounded-2xl p-2 shadow-inner`;
+      bubbleDiv.querySelector('p').className = `text-sm font-bold ${char.theme.bubbleText} leading-snug`;
+
+      // Set Up Grid
+      renderGameBoard();
+      updateProgress();
+      
+      // Start Timer & Reset Dialogues
+      startTimer();
+      updateGameSpeechBubble('start');
+
+      // Transition Screen
+      showScreen('screen-game');
+      
+      // Tap character triggers bouncy speech bubble
+      portraitContainer.onclick = () => {
+        playSound('correct');
+        updateGameSpeechBubble('correct');
+        portraitContainer.classList.add('scale-90');
+        setTimeout(() => portraitContainer.classList.remove('scale-90'), 150);
+      };
+    }
+
+    function endGame() {
+      clearInterval(state.timerInterval);
+      playSound('victory');
+      
+      // Populate Victory Screen Details
+      const char = state.selectedCharacter;
+      const victoryPortrait = document.getElementById('victory-character-portrait');
+      victoryPortrait.innerHTML = `<img src="${char.imagePath}" alt="${char.name}" class="w-full h-full object-contain rounded-full border-4 border-white shadow-md bg-white p-2">`;
+      
+      // Setup tap behavior on victory portrait for extra bouncy fun
+      victoryPortrait.onclick = () => {
+        playSound('correct');
+        victoryPortrait.classList.add('scale-75');
+        setTimeout(() => victoryPortrait.classList.remove('scale-75'), 150);
+        triggerVictoryConfetti();
+      };
+
+      const bubble = document.getElementById('victory-speech-bubble');
+      bubble.parentElement.className = `relative bg-white border-4 ${char.theme.bubbleBorder} rounded-3xl p-4 shadow-md max-w-sm mx-auto mt-2`;
+      bubble.className = `text-center text-lg font-extrabold ${char.theme.bubbleText} tracking-wide leading-relaxed`;
+      bubble.innerHTML = char.dialogues.victory;
+
+      // Format time
+      const mins = String(Math.floor(state.timerSeconds / 60)).padStart(2, '0');
+      const secs = String(state.timerSeconds % 60).padStart(2, '0');
+      document.getElementById('victory-time-display').textContent = `${mins}:${secs}`;
+
+      // Save completed record with character stamp
+      const dateStr = getLocalDateString();
+      const charId = state.selectedCharacter.id;
+      
+      if (!state.completedStamps[dateStr]) {
+        state.completedStamps[dateStr] = [];
+      }
+      if (!state.completedStamps[dateStr].includes(charId)) {
+        state.completedStamps[dateStr].push(charId);
+      }
+      
+      try {
+        localStorage.setItem('hyakumasu_completed_stamps', JSON.stringify(state.completedStamps));
+      } catch(e) {
+        console.error("LocalStorage save error:", e);
+      }
+
+      // Initialize Calendar component to current date & render stamp
+      const completedToday = new Date();
+      state.calendarYear = completedToday.getFullYear();
+      state.calendarMonth = completedToday.getMonth() + 1;
+      renderCalendar('calendar-days', 'calendar-title');
+
+      // Launch Confetti Particle Effect
+      showScreen('screen-victory');
+      triggerVictoryConfetti();
+    }
+
+    function confirmExit() {
+      playSound('tap');
+      if (confirm('はじめの がめん に もどる？ (とちゅうの けいさんは けえちゃうよ)')) {
+        clearInterval(state.timerInterval);
+        goToSettings();
+      }
+    }
+
+    function goToSettings() {
+      playSound('tap');
+      renderCharacterSelection();
+      renderCalendar('top-calendar-days', 'top-calendar-title');
+      showScreen('screen-settings');
+    }
+
+    // Helper: Local Date string as YYYY-MM-DD
+    function getLocalDateString(d = new Date()) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    // ==========================================
+    // 9. STAMP CALENDAR COMPONENT
+    // ==========================================
+    function changeCalendarMonth(offset, isTop = false) {
+      playSound('tap');
+      state.calendarMonth += offset;
+      if (state.calendarMonth > 12) {
+        state.calendarMonth = 1;
+        state.calendarYear++;
+      } else if (state.calendarMonth < 1) {
+        state.calendarMonth = 12;
+        state.calendarYear--;
+      }
+      
+      if (isTop) {
+        renderCalendar('top-calendar-days', 'top-calendar-title');
+      } else {
+        renderCalendar('calendar-days', 'calendar-title');
+      }
+    }
+
+    function renderCalendar(containerId, titleId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+      
+      const year = state.calendarYear;
+      const month = state.calendarMonth;
+      
+      const titleEl = document.getElementById(titleId);
+      if (titleEl) {
+        titleEl.textContent = `${year}年 ${month}月`;
+      }
+
+      // Start of month day of week (0: Sun, 1: Mon, etc.)
+      const firstDay = new Date(year, month - 1, 1).getDay();
+      
+      // Total days in month
+      const totalDays = new Date(year, month, 0).getDate();
+
+      // Render blanks for starting padding
+      for (let i = 0; i < firstDay; i++) {
+        const blank = document.createElement('div');
+        blank.className = 'py-2';
+        container.appendChild(blank);
+      }
+
+      // Render actual days
+      for (let day = 1; day <= totalDays; day++) {
+        const dayCell = document.createElement('div');
+        dayCell.className = 'relative flex items-center justify-center font-bold text-slate-700 bg-slate-50 rounded-xl border border-slate-100 h-10 w-10 mx-auto';
+        
+        const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        // Highlight today
+        const localTodayStr = getLocalDateString();
+        if (formattedDate === localTodayStr) {
+          dayCell.classList.add('ring-2', 'ring-pink-400', 'bg-pink-50');
+        }
+
+        const dayStamps = state.completedStamps[formattedDate] || [];
+        
+        // Check if all 5 characters are completed (Apple, Grape, Lemon, Orange, Strawberry)
+        if (dayStamps.length >= 5) {
+          // All characters completed -> Display big Hanamaru stamp 💮
+          dayCell.innerHTML = `
+            <span class="text-xs text-slate-300 z-0 absolute top-0.5 right-1">${day}</span>
+            <span class="text-2xl z-10 animate-pop select-none pointer-events-none absolute inset-0 flex items-center justify-center" style="transform: rotate(${Math.floor(Math.random() * 20) - 10}deg) scale(1.1)">💮</span>
+          `;
+        } else if (dayStamps.length > 0) {
+          // Display the individual completed character emojis as stamps
+          const emojisHtml = dayStamps.map(id => {
+            const char = CHARACTERS.find(c => c.id === id);
+            return char ? `<span class="text-[11px] leading-none">${char.emoji}</span>` : '';
+          }).join('');
+          
+          dayCell.innerHTML = `
+            <span class="text-[10px] text-slate-400 absolute top-0.5 right-1 leading-none z-0">${day}</span>
+            <div class="flex flex-wrap justify-center items-center gap-0.5 p-0.5 mt-2.5 w-full leading-none z-10">
+              ${emojisHtml}
+            </div>
+          `;
+        } else {
+          // No completions
+          dayCell.textContent = day;
+        }
+
+        container.appendChild(dayCell);
+      }
+    }
+
+    // ==========================================
+    // 10. CONFETTI EFFECT
+    // ==========================================
+    let confettiActive = false;
+    let confettiParticles = [];
+    const colors = ['#FFC75F', '#FF9671', '#FF6F91', '#D65DB1', '#845EC2', '#F9F871', '#4D8076', '#2F4F4F'];
+
+    function triggerVictoryConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Resize canvas to parent width
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+
+      confettiParticles = [];
+      const particleCount = 100;
+
+      for (let i = 0; i < particleCount; i++) {
+        confettiParticles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          r: Math.random() * 6 + 4,
+          d: Math.random() * canvas.height,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          tilt: Math.random() * 10 - 5,
+          tiltAngleIncremental: Math.random() * 0.07 + 0.02,
+          tiltAngle: 0
+        });
+      }
+
+      if (!confettiActive) {
+        confettiActive = true;
+        animateConfetti(canvas, ctx);
+      }
+    }
+
+    function animateConfetti(canvas, ctx) {
+      if (!confettiActive) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      let remaining = 0;
+      for (let i = 0; i < confettiParticles.length; i++) {
+        const p = confettiParticles[i];
+        
+        p.tiltAngle += p.tiltAngleIncremental;
+        p.y += (Math.cos(p.d) + 3 + p.r / 2) / 2;
+        p.x += Math.sin(p.tiltAngle);
+        p.tilt = Math.sin(p.tiltAngle - i / 3) * 15;
+
+        if (p.y <= canvas.height) {
+          remaining++;
+        }
+
+        ctx.beginPath();
+        ctx.lineWidth = p.r;
+        ctx.strokeStyle = p.color;
+        ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
+        ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
+        ctx.stroke();
+      }
+
+      if (remaining > 0) {
+        requestAnimationFrame(() => animateConfetti(canvas, ctx));
+      } else {
+        confettiActive = false;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    // ==========================================
+    // 11. INITIALIZATION ON LOAD
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      // Default setup
+      selectCharacter(CHARACTERS[0], true);
+      setGridSize(3, true);
+      setOperation('+', true);
+      
+      // Initial render for TOP screen calendar
+      const today = new Date();
+      state.calendarYear = today.getFullYear();
+      state.calendarMonth = today.getMonth() + 1;
+      renderCalendar('top-calendar-days', 'top-calendar-title');
+      
+      // Auto resize confetti on window resize
+      window.addEventListener('resize', () => {
+        const canvas = document.getElementById('confetti-canvas');
+        if (canvas) {
+          canvas.width = canvas.parentElement.clientWidth;
+          canvas.height = canvas.parentElement.clientHeight;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
