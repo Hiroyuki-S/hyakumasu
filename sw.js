@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hyakumasu-v11';
+const CACHE_NAME = 'hyakumasu-v12';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
