@@ -220,6 +220,16 @@
         </div>
       </div>
 
+      <!-- Fastest Records Section on TOP Settings Screen -->
+      <div class="bg-white rounded-3xl p-4 shadow border border-pink-100 space-y-3 mt-4">
+        <h3 class="text-center text-sm font-bold text-slate-600 flex items-center justify-center gap-1">
+          🏆 さいそくきろく (ベストタイム)
+        </h3>
+        <div id="fastest-records-list" class="space-y-2 max-h-48 overflow-y-auto no-scrollbar pr-1 text-xs">
+          <!-- Dynamically populated fastest records -->
+        </div>
+      </div>
+
     </div>
 
     <!-- ========================================== -->
@@ -623,21 +633,22 @@
       timerInterval: null,
       timerSeconds: 0,
       completedStamps: {}, // stores completed stamps per day: { "YYYY-MM-DD": ["apple", "grape", ...] }
+      fastestRecords: {},  // stores fastest records per mode: { "size_op_diff": seconds }
       calendarYear: 2026,
       calendarMonth: 5 // 5 represents May (0-indexed represents 1-indexed for simple view)
     };
 
-    // Load initial completed stamps from LocalStorage
+    // Load initial completed stamps and fastest records from LocalStorage
     try {
       const storedStamps = localStorage.getItem('hyakumasu_completed_stamps');
-      if (storedStamps) {
-        state.completedStamps = JSON.parse(storedStamps);
-      } else {
-        state.completedStamps = {};
-      }
+      state.completedStamps = storedStamps ? JSON.parse(storedStamps) : {};
+
+      const storedRecords = localStorage.getItem('hyakumasu_fastest_records');
+      state.fastestRecords = storedRecords ? JSON.parse(storedRecords) : {};
     } catch(e) {
       console.error("LocalStorage load error:", e);
       state.completedStamps = {};
+      state.fastestRecords = {};
     }
 
     // Initialize calendar details from current date
@@ -1379,6 +1390,18 @@
         console.error("LocalStorage save error:", e);
       }
 
+      // Save fastest record for this mode
+      const modeKey = `${state.gridSize}_${state.operation}_${state.difficultyMode}`;
+      const previousBest = state.fastestRecords[modeKey];
+      if (previousBest === undefined || state.timerSeconds < previousBest) {
+        state.fastestRecords[modeKey] = state.timerSeconds;
+        try {
+          localStorage.setItem('hyakumasu_fastest_records', JSON.stringify(state.fastestRecords));
+        } catch(e) {
+          console.error("LocalStorage save error:", e);
+        }
+      }
+
       // Initialize Calendar component to current date & render stamp
       const completedToday = new Date();
       state.calendarYear = completedToday.getFullYear();
@@ -1403,6 +1426,7 @@
       playBGM('title');
       renderCharacterSelection();
       renderCalendar('top-calendar-days', 'top-calendar-title');
+      renderFastestRecords();
       showScreen('screen-settings');
     }
 
@@ -1506,6 +1530,86 @@
     }
 
     // ==========================================
+    // 9b. FASTEST RECORDS COMPONENT
+    // ==========================================
+    function renderFastestRecords() {
+      const container = document.getElementById('fastest-records-list');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const keys = Object.keys(state.fastestRecords);
+      if (keys.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-4 text-slate-400 font-medium">
+            まだ きろくが ないよ！<br>
+            けいさんを クリアして きろくを つくろう！ 🚀
+          </div>
+        `;
+        return;
+      }
+
+      // Sort keys (e.g. 3_+_easy) to display nicely
+      keys.sort().forEach((key) => {
+        const parts = key.split('_');
+        if (parts.length !== 3) return;
+
+        const size = parts[0];
+        const op = parts[1];
+        const diff = parts[2];
+        const seconds = state.fastestRecords[key];
+
+        // Format time (MM:SS)
+        const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const secs = String(seconds % 60).padStart(2, '0');
+
+        // Human-friendly strings
+        const opName = op === '+' ? 'たしざん' : (op === '-' ? 'ひきざん' : (op === '*' ? 'かけざん' : 'わりざん'));
+        const opSymbol = op === '*' ? '×' : (op === '/' ? '÷' : op);
+        const diffName = diff === 'easy' ? 'かんたん' : 'ふつう';
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between bg-slate-50 hover:bg-slate-100 p-2 rounded-xl border border-slate-100 transition-colors';
+        
+        row.innerHTML = `
+          <div class="flex items-center gap-1.5 font-bold text-slate-600 font-sans">
+            <span class="bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded-lg text-[10px]">📐 ${size}×${size}</span>
+            <span class="bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-lg text-[10px]">${opSymbol} ${opName}</span>
+            <span class="text-slate-400 text-[10px]">(${diffName})</span>
+          </div>
+          <div class="flex items-center gap-3 font-extrabold">
+            <span class="text-pink-600 font-mono text-sm">⏱️ ${mins}:${secs}</span>
+            <button onclick="deleteFastestRecord('${key}')" class="text-slate-400 hover:text-rose-500 hover:scale-110 active:scale-95 transition-all p-1" title="きろくを消す">
+              🗑️
+            </button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function deleteFastestRecord(key) {
+      playSound('tap');
+      
+      const parts = key.split('_');
+      const size = parts[0];
+      const op = parts[1];
+      const diff = parts[2];
+      const opName = op === '+' ? 'たしざん' : (op === '-' ? 'ひきざん' : (op === '*' ? 'かけざん' : 'わりざん'));
+      const diffName = diff === 'easy' ? 'かんたん' : 'ふつう';
+
+      const confirmMsg = `${size}×${size} の ${opName} (${diffName}) の さいそくきろく を けしても いい？`;
+      if (confirm(confirmMsg)) {
+        delete state.fastestRecords[key];
+        try {
+          localStorage.setItem('hyakumasu_fastest_records', JSON.stringify(state.fastestRecords));
+        } catch(e) {
+          console.error("LocalStorage save error:", e);
+        }
+        renderFastestRecords();
+      }
+    }
+
+    // ==========================================
     // 10. CONFETTI EFFECT
     // ==========================================
     let confettiActive = false;
@@ -1586,11 +1690,12 @@
       setOperation('+', true);
       setDifficultyMode('easy', true);
       
-      // Initial render for TOP screen calendar
+      // Initial render for TOP screen calendar & fastest records
       const today = new Date();
       state.calendarYear = today.getFullYear();
       state.calendarMonth = today.getMonth() + 1;
       renderCalendar('top-calendar-days', 'top-calendar-title');
+      renderFastestRecords();
       
       // Auto resize confetti on window resize
       window.addEventListener('resize', () => {
