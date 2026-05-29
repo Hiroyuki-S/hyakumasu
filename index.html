@@ -1098,7 +1098,7 @@
       playSound('tap');
 
       if (key === 'delete') {
-        cellData.userAnswer = cellData.userAnswer.slice(0, -1);
+        cellData.userAnswer = '';
       } else if (key === 'next') {
         // Force manual check/next trigger
         checkAnswer(row, col, true);
