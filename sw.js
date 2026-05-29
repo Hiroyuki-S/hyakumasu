@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hyakumasu-v9';
+const CACHE_NAME = 'hyakumasu-v10';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -16,6 +16,7 @@ const ASSETS_TO_CACHE = [
   './sounds/bgm/playing.mp3',
   './sounds/effects/correct.mp3',
   './sounds/effects/failed.mp3',
+  './sounds/effects/clear.mp3',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Kosugi+Maru&display=swap'
 ];

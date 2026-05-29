@@ -523,6 +523,7 @@
 
     const sfxCorrect = new Audio('./sounds/effects/correct.mp3');
     const sfxFailed = new Audio('./sounds/effects/failed.mp3');
+    const sfxClear = new Audio('./sounds/effects/clear.mp3');
 
     let currentBgm = null;
 
@@ -535,20 +536,6 @@
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
-
-      // Pre-play & pause to unlock mobile browsers
-      const silentUnlock = (audio) => {
-        audio.play().then(() => {
-          audio.pause();
-        }).catch(e => console.log("Audio unlock debug: ", e));
-      };
-
-      silentUnlock(bgmTitle);
-      silentUnlock(bgmPlaying);
-      silentUnlock(sfxCorrect);
-      silentUnlock(sfxFailed);
-
-      isAudioUnlocked = true;
     }
 
     function playBGM(type) {
@@ -594,8 +581,8 @@
         sfxFailed.play().catch(e => console.log("SFX play error: ", e));
       } else if (type === 'victory') {
         stopBGM();
-        // Play legacy synthesized victory fanfare
-        playSynthVictory();
+        sfxClear.currentTime = 0;
+        sfxClear.play().catch(e => console.log("SFX clear play error: ", e));
       } else if (type === 'tap') {
         playSynthTap();
       }
@@ -617,49 +604,6 @@
       gain.connect(audioCtx.destination);
       osc.start(now);
       osc.stop(now + 0.09);
-    }
-
-    function playSynthVictory() {
-      if (!audioCtx) return;
-      const now = audioCtx.currentTime;
-
-      const notes = [261.63, 329.63, 392.00, 523.25];
-      notes.forEach((freq, idx) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        const startDelay = idx * 0.12;
-
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, now + startDelay);
-
-        gain.gain.setValueAtTime(0, now + startDelay);
-        gain.gain.linearRampToValueAtTime(0.2, now + startDelay + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + startDelay + 0.6);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now + startDelay);
-        osc.stop(now + startDelay + 0.61);
-      });
-
-      const finalDelay = 0.5;
-      const chord = [523.25, 659.25, 783.99, 1046.50];
-      chord.forEach((freq) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, now + finalDelay);
-
-        gain.gain.setValueAtTime(0, now + finalDelay);
-        gain.gain.linearRampToValueAtTime(0.15, now + finalDelay + 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + finalDelay + 1.2);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now + finalDelay);
-        osc.stop(now + finalDelay + 1.25);
-      });
     }
 
     // ==========================================
@@ -1659,12 +1603,27 @@
 
       // Unlock audio and play title BGM on first user interaction (tap or click)
       const unlockAudio = () => {
+        const unlock = (audio) => {
+          audio.play().then(() => {
+            audio.pause();
+            audio.currentTime = 0;
+          }).catch(e => console.log("Unlock error: ", e));
+        };
+
+        unlock(bgmTitle);
+        unlock(bgmPlaying);
+        unlock(sfxCorrect);
+        unlock(sfxFailed);
+        unlock(sfxClear);
+
+        isAudioUnlocked = true;
         playBGM('title');
+
         document.removeEventListener('click', unlockAudio);
-        document.removeEventListener('touchstart', unlockAudio);
+        document.removeEventListener('touchend', unlockAudio);
       };
       document.addEventListener('click', unlockAudio);
-      document.addEventListener('touchstart', unlockAudio);
+      document.addEventListener('touchend', unlockAudio);
     });
   </script>
 </body>
