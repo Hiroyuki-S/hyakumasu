@@ -510,128 +510,156 @@
     ];
 
     // ==========================================
-    // 2. AUDIO SYNTHESIS (WEB AUDIO API)
+    // 2. AUDIO PLAYBACK (BGM & SFX)
     // ==========================================
     let audioCtx = null;
+    let isAudioUnlocked = false;
+
+    // Load Audio elements
+    const bgmTitle = new Audio('./sounds/bgm/title.mp3');
+    bgmTitle.loop = true;
+    const bgmPlaying = new Audio('./sounds/bgm/playing.mp3');
+    bgmPlaying.loop = true;
+
+    const sfxCorrect = new Audio('./sounds/effects/correct.mp3');
+    const sfxFailed = new Audio('./sounds/effects/failed.mp3');
+
+    let currentBgm = null;
 
     function initAudio() {
+      if (isAudioUnlocked) return;
+
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
+
+      // Pre-play & pause to unlock mobile browsers
+      const silentUnlock = (audio) => {
+        audio.play().then(() => {
+          audio.pause();
+        }).catch(e => console.log("Audio unlock debug: ", e));
+      };
+
+      silentUnlock(bgmTitle);
+      silentUnlock(bgmPlaying);
+      silentUnlock(sfxCorrect);
+      silentUnlock(sfxFailed);
+
+      isAudioUnlocked = true;
+    }
+
+    function playBGM(type) {
+      initAudio();
+
+      let nextBgm = null;
+      if (type === 'title') {
+        nextBgm = bgmTitle;
+      } else if (type === 'playing') {
+        nextBgm = bgmPlaying;
+      }
+
+      if (currentBgm === nextBgm) return;
+
+      if (currentBgm) {
+        currentBgm.pause();
+      }
+
+      currentBgm = nextBgm;
+      if (currentBgm) {
+        currentBgm.currentTime = 0;
+        currentBgm.play().catch(e => {
+          console.log("BGM play blocked: waiting for user interaction", e);
+        });
+      }
+    }
+
+    function stopBGM() {
+      if (currentBgm) {
+        currentBgm.pause();
+        currentBgm = null;
+      }
     }
 
     function playSound(type) {
       initAudio();
-      if (!audioCtx) return;
-
-      const now = audioCtx.currentTime;
 
       if (type === 'correct') {
-        // High-pitched happy double chime (E6 then A6)
-        const osc1 = audioCtx.createOscillator();
-        const osc2 = audioCtx.createOscillator();
-        const gain1 = audioCtx.createGain();
-        const gain2 = audioCtx.createGain();
-
-        osc1.type = 'triangle';
-        osc1.frequency.setValueAtTime(1318.51, now); // E6
-        gain1.gain.setValueAtTime(0, now);
-        gain1.gain.linearRampToValueAtTime(0.3, now + 0.02);
-        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-
-        osc1.connect(gain1);
-        gain1.connect(audioCtx.destination);
-        osc1.start(now);
-        osc1.stop(now + 0.16);
-
-        osc2.type = 'triangle';
-        osc2.frequency.setValueAtTime(1760.00, now + 0.08); // A6
-        gain2.gain.setValueAtTime(0, now + 0.08);
-        gain2.gain.linearRampToValueAtTime(0.3, now + 0.1);
-        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-
-        osc2.connect(gain2);
-        gain2.connect(audioCtx.destination);
-        osc2.start(now + 0.08);
-        osc2.stop(now + 0.36);
-
+        sfxCorrect.currentTime = 0;
+        sfxCorrect.play().catch(e => console.log("SFX play error: ", e));
       } else if (type === 'incorrect') {
-        // Soft cartoon sliding down boing
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(220, now);
-        osc.frequency.exponentialRampToValueAtTime(110, now + 0.25);
-
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.4, now + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 0.26);
-
+        sfxFailed.currentTime = 0;
+        sfxFailed.play().catch(e => console.log("SFX play error: ", e));
       } else if (type === 'victory') {
-        // Bouncy upward fanfare chord progression
-        const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
-        notes.forEach((freq, idx) => {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          const startDelay = idx * 0.12;
-
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(freq, now + startDelay);
-          
-          gain.gain.setValueAtTime(0, now + startDelay);
-          gain.gain.linearRampToValueAtTime(0.2, now + startDelay + 0.05);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + startDelay + 0.6);
-
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start(now + startDelay);
-          osc.stop(now + startDelay + 0.61);
-        });
-
-        // Add a final nice harmonic chord
-        const finalDelay = 0.5;
-        const chord = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
-        chord.forEach((freq) => {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(freq, now + finalDelay);
-          
-          gain.gain.setValueAtTime(0, now + finalDelay);
-          gain.gain.linearRampToValueAtTime(0.15, now + finalDelay + 0.1);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + finalDelay + 1.2);
-
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start(now + finalDelay);
-          osc.stop(now + finalDelay + 1.25);
-        });
+        stopBGM();
+        // Play legacy synthesized victory fanfare
+        playSynthVictory();
       } else if (type === 'tap') {
-        // Soft button tap chime
+        playSynthTap();
+      }
+    }
+
+    function playSynthTap() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, now);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.09);
+    }
+
+    function playSynthVictory() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+
+      const notes = [261.63, 329.63, 392.00, 523.25];
+      notes.forEach((freq, idx) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
+        const startDelay = idx * 0.12;
 
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(600, now);
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + startDelay);
+
+        gain.gain.setValueAtTime(0, now + startDelay);
+        gain.gain.linearRampToValueAtTime(0.2, now + startDelay + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + startDelay + 0.6);
 
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 0.09);
-      }
+        osc.start(now + startDelay);
+        osc.stop(now + startDelay + 0.61);
+      });
+
+      const finalDelay = 0.5;
+      const chord = [523.25, 659.25, 783.99, 1046.50];
+      chord.forEach((freq) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + finalDelay);
+
+        gain.gain.setValueAtTime(0, now + finalDelay);
+        gain.gain.linearRampToValueAtTime(0.15, now + finalDelay + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + finalDelay + 1.2);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + finalDelay);
+        osc.stop(now + finalDelay + 1.25);
+      });
     }
 
     // ==========================================
@@ -1322,6 +1350,7 @@
     function startGame() {
       initAudio();
       playSound('tap');
+      playBGM('playing');
       
       // Prepare Game Parameters
       generateGridData();
@@ -1427,6 +1456,7 @@
 
     function goToSettings() {
       playSound('tap');
+      playBGM('title');
       renderCharacterSelection();
       renderCalendar('top-calendar-days', 'top-calendar-title');
       showScreen('screen-settings');
@@ -1626,6 +1656,15 @@
           canvas.height = canvas.parentElement.clientHeight;
         }
       });
+
+      // Unlock audio and play title BGM on first user interaction (tap or click)
+      const unlockAudio = () => {
+        playBGM('title');
+        document.removeEventListener('click', unlockAudio);
+        document.removeEventListener('touchstart', unlockAudio);
+      };
+      document.addEventListener('click', unlockAudio);
+      document.addEventListener('touchstart', unlockAudio);
     });
   </script>
 </body>

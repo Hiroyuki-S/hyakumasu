@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hyakumasu-v8';
+const CACHE_NAME = 'hyakumasu-v9';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -12,6 +12,10 @@ const ASSETS_TO_CACHE = [
   './Character/melon.png',
   './Character/orange.png',
   './Character/strawberry.jpg',
+  './sounds/bgm/title.mp3',
+  './sounds/bgm/playing.mp3',
+  './sounds/effects/correct.mp3',
+  './sounds/effects/failed.mp3',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Kosugi+Maru&display=swap'
 ];
